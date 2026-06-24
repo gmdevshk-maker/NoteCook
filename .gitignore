@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+Output/
+.DS_Store
+# Ollama 런타임 번들(대용량, 빌드 시 생성)
+vendor/ollama/
+# 로컬 데이터(문서/벡터DB/모델캐시)
+data/
+# 빌드 로그
+build_log.txt
+build_run.log
+# 로컬 IDE/도구 설정
+.claude/
+# 샘플 문서/테스트(앱 실행 비필수)
+sample_docs/
+tests/

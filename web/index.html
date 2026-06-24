@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCook</title>
+<!-- 오프라인용 Tabler 아이콘 웹폰트 (vendored, CDN 의존 없음) -->
+<link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="rsz rsz-n" data-edge="n"></div>
+<div class="rsz rsz-s" data-edge="s"></div>
+<div class="rsz rsz-e" data-edge="e"></div>
+<div class="rsz rsz-w" data-edge="w"></div>
+<div class="rsz rsz-ne" data-edge="ne"></div>
+<div class="rsz rsz-nw" data-edge="nw"></div>
+<div class="rsz rsz-se" data-edge="se"></div>
+<div class="rsz rsz-sw" data-edge="sw"></div>
+<div class="app-frame">
+  <div class="titlebar">
+    <div class="titlebar-drag pywebview-drag-region">
+      <img src="icon.png" class="app-icon" alt="NoteCook" aria-hidden="true">
+      <span class="app-title">NoteCook</span>
+    </div>
+    <div class="titlebar-tools">
+      <button class="toolbar-btn" id="modelBtn" style="font-size:11px;" onclick="openModelModal()" title="모델 관리">
+        <i id="modelStatusIcon" class="ti ti-cpu st-idle" style="font-size:12px;" aria-hidden="true"></i> <span id="modelLabel">모델 미선택</span>
+      </button>
+      <button class="toolbar-btn" id="optBtn" style="font-size:11px;" onclick="toggleOptMenu(event)" title="옵션">
+        <i class="ti ti-settings" style="font-size:12px;" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="win-controls">
+      <button class="win-ctrl" onclick="winMin()" title="최소화"><i class="ti ti-minus" aria-hidden="true"></i></button>
+      <button class="win-ctrl" onclick="winMax()" title="최대화"><i class="ti ti-square" id="maxIcon" aria-hidden="true"></i></button>
+      <button class="win-ctrl close" onclick="winClose()" title="닫기"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-head-left">
+          <input type="checkbox" class="tree-check" id="selectAllChk" title="전체 선택" onclick="toggleAllSelect(event)">
+          <span class="sidebar-title">노트북</span>
+        </div>
+        <button class="sidebar-add-btn" title="새 노트북 추가" onclick="addNotebook()">
+          <i class="ti ti-plus" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="tree" id="tree"></div>
+      <div class="resizer" id="resizer"></div>
+    </div>
+
+    <div class="content">
+      <div class="content-toolbar">
+        <i class="ti ti-folder-open" id="scopeIcon" style="color:#febc2e;font-size:14px;" aria-hidden="true"></i>
+        <span class="toolbar-label" id="scopeLabel" style="font-size:12.5px;font-weight:500;" onclick="onScopeLabelClick(event)">노트북을 선택하세요</span>
+      </div>
+
+      <div class="chat-area">
+        <div class="prompt-section">
+          <div class="prompt-label">
+            <i class="ti ti-message" style="font-size:13px;" aria-hidden="true"></i> 프롬프트 입력
+            <button class="label-icon-btn" id="clearPromptBtn" onclick="clearPrompt()" title="입력 내용 초기화" aria-label="입력 내용 초기화">
+              <i class="ti ti-refresh" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="prompt-box">
+            <textarea class="prompt-textarea" id="promptInput" rows="3" placeholder="문서에 대해 질문하세요. 예) 이 논문의 핵심 주장을 3가지로 요약해줘  (Ctrl+Enter 로 전송)"></textarea>
+            <div class="prompt-resize" id="promptResize" title="높이 조절"></div>
+            <div class="prompt-footer">
+              <button class="ghost-btn" id="savedBtn" onclick="toggleSavedMenu(event)">
+                <i class="ti ti-bookmarks" style="font-size:13px;" aria-hidden="true"></i> 저장된 프롬프트
+                <i class="ti ti-chevron-down" style="font-size:10px;" aria-hidden="true"></i>
+              </button>
+              <div class="footer-actions">
+                <button class="ghost-btn" id="savePromptBtn" onclick="openSavePrompt()">
+                  <i class="ti ti-device-floppy" style="font-size:13px;" aria-hidden="true"></i> 프롬프트 저장
+                </button>
+                <button class="send-btn" id="sendBtn" onclick="analyze()">
+                  <i class="ti ti-send" style="font-size:12px;" aria-hidden="true"></i> 분석
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="answer-section">
+          <div class="answer-label">
+            <i class="ti ti-robot" style="font-size:13px;" aria-hidden="true"></i> 분석 결과
+            <button class="label-icon-btn" id="clearAnswerBtn" onclick="clearAnswer()" title="분석 결과 초기화" aria-label="분석 결과 초기화">
+              <i class="ti ti-refresh" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="answer-box" id="answerBox">
+            <div class="empty-hint" id="emptyHint">
+              <i class="ti ti-message-2" aria-hidden="true"></i>
+              <div>문서를 추가하고 질문하면 분석 결과가 여기에 표시됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ctx-menu saved-menu" id="savedMenu" onclick="event.stopPropagation()">
+  <div class="saved-search">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    <input type="text" id="savedSearch" placeholder="제목 검색" oninput="renderSavedList()">
+  </div>
+  <div class="saved-list" id="savedList"></div>
+</div>
+
+<div class="modal-overlay" id="promptModal">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header">
+      <span class="mh-left"><i class="ti ti-device-floppy" aria-hidden="true"></i> 프롬프트 저장</span>
+      <button class="modal-close" onclick="closePromptModal(false)"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pm-label">제목 <span class="pm-count" id="pmTitleCount">0/10</span></div>
+      <input type="text" id="pmTitle" class="pm-input" maxlength="10" placeholder="제목 (한글 10자 이내)" oninput="updateTitleCount()">
+      <div class="pm-label" style="margin-top:14px;">내용</div>
+      <textarea id="pmContent" class="pm-textarea" placeholder="저장할 프롬프트 내용" oninput="updateSaveBtn()"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:14px;">
+        <button class="mini-btn" onclick="closePromptModal(false)">취소</button>
+        <button class="mini-btn primary" id="pmSaveBtn" onclick="closePromptModal(true)" disabled>저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="width:380px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="mh-left"><i class="ti ti-alert-triangle" style="color:var(--color-text-danger);" aria-hidden="true"></i> <span id="confirmTitle">삭제 확인</span></span>
+      <button class="modal-close" onclick="closeConfirm(false)"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="confirmMsg" style="font-size:13px;color:var(--color-text-primary);line-height:1.55;white-space:pre-line;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:18px;">
+        <button class="mini-btn" onclick="closeConfirm(false)">취소</button>
+        <button class="mini-btn danger-solid" id="confirmOkBtn" onclick="closeConfirm(true)">삭제</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="textModal">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <span class="mh-left" id="textModalTitle">입력</span>
+      <button class="modal-close" onclick="closeTextModal(false)"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="textModalInput" style="width:100%;height:34px;padding:0 11px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-size:13px;font-family:var(--font-sans);outline:none;user-select:text;">
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:14px;">
+        <button class="mini-btn" onclick="closeTextModal(false)">취소</button>
+        <button class="mini-btn primary" onclick="closeTextModal(true)">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modelModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="mh-left"><i class="ti ti-cpu" aria-hidden="true"></i> 모델 관리</span>
+      <button class="modal-close" onclick="closeModelModal()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="ollama-status warn" id="ollamaStatus">
+        <span class="dot"></span>
+        <span id="ollamaStatusText">상태 확인 중…</span>
+        <span class="st-actions" id="ollamaStatusActions"></span>
+      </div>
+
+      <div class="model-section">
+        <div class="model-section-title">GPU 가속</div>
+        <div id="gpuSection"></div>
+      </div>
+
+      <div class="model-section" id="installedSection">
+        <div class="model-section-title">설치된 모델</div>
+        <div id="installedList"></div>
+      </div>
+
+      <div class="model-section">
+        <div class="model-section-title">임베딩 모델 (필수 · RAG 검색용)</div>
+        <div id="embedList"></div>
+      </div>
+
+      <div class="model-section">
+        <div class="model-section-title">Gemma 4 다운로드 (생성 모델)</div>
+        <div id="recommendList"></div>
+      </div>
+
+      <div class="model-section">
+        <div class="model-section-title">다른 모델 직접 입력</div>
+        <div class="custom-pull">
+          <input type="text" id="customTag" placeholder="예) qwen3:8b, llama3.1:8b, mistral">
+          <button class="mini-btn primary" onclick="downloadCustom()"><i class="ti ti-download" aria-hidden="true"></i> 받기</button>
+        </div>
+        <div class="progress" id="progress-custom" data-tag="">
+          <div class="progress-bar"><div class="progress-fill"></div></div>
+          <div class="progress-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="opt-menu" id="optMenu">
+  <div class="opt-section-label">화면</div>
+  <div class="opt-item" id="darkModeItem">
+    <i class="ti ti-moon" aria-hidden="true"></i>
+    <span class="opt-label">다크 모드</span>
+    <span class="switch" id="darkSwitch"></span>
+  </div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu">
+  <div id="ctxContent"></div>
+</div>
+
+<div class="ctx-menu sel-pop" id="selPop">
+  <div class="sel-pop-head" id="selPopHead"></div>
+  <div class="sel-pop-body" id="selPopBody"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
