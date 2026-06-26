@@ -25,7 +25,9 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=['clr'],   # pywebview WinForms 백엔드(pythonnet)
+    # clr: pywebview WinForms 백엔드(pythonnet)
+    # pptx/openpyxl: 내보내기 모듈에서 함수 내부 지연 import 하므로 명시.
+    hiddenimports=['clr', 'pptx', 'openpyxl', 'docx'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -79,6 +79,10 @@
                 <button class="ghost-btn" id="savePromptBtn" onclick="openSavePrompt()">
                   <i class="ti ti-device-floppy" style="font-size:13px;" aria-hidden="true"></i> 프롬프트 저장
                 </button>
+                <button class="ghost-btn" id="exportBtn" onclick="toggleExportMenu(event)" title="분석 결과를 문서 파일로 내보내기">
+                  <i class="ti ti-file-export" style="font-size:13px;" aria-hidden="true"></i> 내보내기
+                  <i class="ti ti-chevron-down" style="font-size:10px;" aria-hidden="true"></i>
+                </button>
                 <button class="send-btn" id="sendBtn" onclick="analyze()">
                   <i class="ti ti-send" style="font-size:12px;" aria-hidden="true"></i> 분석
                 </button>
@@ -224,6 +228,13 @@
 
 <div class="ctx-menu" id="ctxMenu">
   <div id="ctxContent"></div>
+</div>
+
+<div class="ctx-menu export-menu" id="exportMenu" onclick="event.stopPropagation()">
+  <div class="ctx-item" onclick="exportReport('docx')"><i class="ti ti-file-type-doc" aria-hidden="true"></i> Word 문서 (.docx)</div>
+  <div class="ctx-item" onclick="exportReport('pptx')"><i class="ti ti-presentation" aria-hidden="true"></i> PowerPoint (.pptx)</div>
+  <div class="ctx-item" onclick="exportReport('xlsx')"><i class="ti ti-file-type-xls" aria-hidden="true"></i> Excel 표·차트 (.xlsx)</div>
+  <div class="ctx-item" onclick="exportReport('txt')"><i class="ti ti-file-text" aria-hidden="true"></i> 텍스트 (.txt)</div>
 </div>
 
 <div class="ctx-menu sel-pop" id="selPop">

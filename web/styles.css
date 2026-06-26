@@ -585,6 +585,7 @@ body { font-family: var(--font-sans); background: var(--color-background-primary
 .ctx-item.danger { color: var(--color-text-danger); }
 .ctx-item.danger i { color: var(--color-text-danger); }
 .ctx-divider { height: 0.5px; background: var(--color-border-tertiary); margin: 3px 0; }
+.export-menu { min-width: 200px; }
 
 /* 빈 상태 / 로딩 / 트리 보조 */
 .empty-hint {

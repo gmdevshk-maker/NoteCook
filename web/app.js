@@ -56,7 +56,7 @@ document.getElementById('darkModeItem').addEventListener('click', (e) => {
   toggleTheme();
 });
 
-document.addEventListener('click', () => { closeCtx(); closeOptMenu(); closeSelPop(); closeSavedMenu(); });
+document.addEventListener('click', () => { closeCtx(); closeOptMenu(); closeSelPop(); closeSavedMenu(); closeExportMenu(); });
 document.addEventListener('contextmenu', (e) => {
   if (!e.target.closest('.tree-item')) closeCtx();
 });
@@ -780,7 +780,7 @@ window.onDropAdded = function(p) {
   if (p.notebook_id) expanded.add(p.notebook_id);
   loadLibrary();
   if (p.skipped && p.skipped.length) {
-    alert('지원하지 않는 형식이라 제외했습니다:\n' + p.skipped.join(', ') + '\n(지원: pdf, docx, txt, md)');
+    alert('지원하지 않는 형식이라 제외했습니다:\n' + p.skipped.join(', ') + '\n(지원: pdf, docx, xlsx, hwpx, txt, md)');
   }
 };
 
@@ -1046,6 +1046,84 @@ async function analyze() {
   } finally {
     analyzing = false; setSendDisabled(false); scrollAnswer();
   }
+}
+
+// === 문서 내보내기 (docx/pptx/xlsx/txt) ===
+const EXPORT_LABELS = { docx: 'Word 문서', pptx: 'PowerPoint', xlsx: 'Excel', txt: '텍스트' };
+
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('exportMenu');
+  if (menu.classList.contains('visible')) { closeExportMenu(); return; }
+  closeCtx(); closeOptMenu(); closeSelPop(); closeSavedMenu();
+  const r = e.currentTarget.getBoundingClientRect();
+  menu.classList.add('visible');
+  // 버튼 오른쪽 끝을 기준으로 왼쪽으로 펼친다(우측 잘림 방지). 화면 왼쪽으로 넘치면 보정.
+  let left = r.right - menu.offsetWidth;
+  if (left < 8) left = 8;
+  menu.style.left = left + 'px';
+  // 기본은 버튼 위로 펼치고, 위 공간이 부족하면 아래로 (저장된 프롬프트 메뉴와 동일)
+  const h = menu.offsetHeight;
+  let top = r.top - h - 4;
+  if (top < 8) top = r.bottom + 4;
+  menu.style.top = top + 'px';
+}
+function closeExportMenu() { document.getElementById('exportMenu').classList.remove('visible'); }
+
+async function exportReport(fmt) {
+  closeExportMenu();
+  if (analyzing) return;
+  const api = getApi();
+  if (!api) { alert('Python 브리지가 연결되지 않았습니다.'); return; }
+  const q = document.getElementById('promptInput').value.trim();
+  if (!q) { alert('리포트로 만들 내용을 프롬프트에 입력하세요.'); return; }
+  const docIds = currentDocIds();
+  if (!docIds.length) {
+    appendUser(q);
+    const el = appendLoading(); el.classList.add('error');
+    el.textContent = '분석할 문서가 없습니다. 노트북에 파일을 추가하거나 문서를 선택하세요.';
+    return;
+  }
+  const model = getSelectedModel();
+  if (!model || isEmbeddingModel(model)) {
+    appendUser(q);
+    const el = appendLoading(); el.classList.add('error');
+    el.textContent = !model
+      ? '생성 모델이 선택되지 않았습니다. 우측 상단 모델 관리에서 Gemma 4 등 생성 모델을 선택하세요.'
+      : `선택된 "${model}" 은(는) 임베딩 전용 모델이라 리포트 생성에 쓸 수 없습니다. 생성 모델을 선택하세요.`;
+    return;
+  }
+  const label = EXPORT_LABELS[fmt] || fmt;
+  appendUser(`[${label} 내보내기] ${q}`);
+  const el = appendLoading();
+  el.innerHTML = `<span class="spinner"></span> ${label} 파일 생성 중… (문서 검색·정리에 시간이 걸릴 수 있습니다)`;
+  analyzing = true; setSendDisabled(true);
+  try {
+    const res = await api.export_report(q, docIds, model, fmt);
+    if (res.canceled) { el.parentElement.remove(); return; }   // 저장 취소: 메시지 제거
+    if (res.error) { el.classList.add('error'); el.textContent = res.error; }
+    else {
+      el.classList.remove('error');
+      el.innerHTML = `<i class="ti ti-circle-check" style="color:#2ea043;"></i> ` +
+        `<b>${esc(res.title || label)}</b> 파일을 저장했습니다.<br>` +
+        `<a class="cite clickable" id="__lastExportLink">${esc(res.path)}</a>`;
+      const a = el.querySelector('#__lastExportLink');
+      if (a) { a.title = '파일 열기'; a.onclick = () => openExportedFile(res.path); }
+    }
+  } catch (e) {
+    el.classList.add('error'); el.textContent = '내보내기 오류: ' + String(e);
+  } finally {
+    analyzing = false; setSendDisabled(false); scrollAnswer();
+  }
+}
+
+async function openExportedFile(path) {
+  const api = getApi();
+  if (!api || !api.open_path) return;
+  try {
+    const r = await api.open_path(path);
+    if (r && r.ok === false) alert(r.error || '파일을 열 수 없습니다.');
+  } catch (e) { alert('파일 열기 실패: ' + String(e)); }
 }
 
 document.getElementById('promptInput').addEventListener('keydown', (e) => {

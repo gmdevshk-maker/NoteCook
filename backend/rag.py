@@ -37,6 +37,8 @@ def parse_file(path: str) -> list[dict]:
         return _parse_pdf(path)
     if ext == ".docx":
         return _parse_docx(path)
+    if ext == ".xlsx":
+        return _parse_xlsx(path)
     if ext == ".hwpx":
         return _parse_hwpx(path)
     if ext in (".txt", ".md"):
@@ -61,6 +63,32 @@ def _parse_docx(path: str) -> list[dict]:
     doc = docx.Document(path)
     text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
     return [{"page": None, "text": text}]
+
+
+def _parse_xlsx(path: str) -> list[dict]:
+    """
+    XLSX(엑셀) 파싱. 시트마다 한 블록으로, 각 행의 셀을 탭으로 이어 텍스트화한다.
+    수식 셀은 마지막 저장 시 캐시된 계산값(data_only=True)을 사용한다. 빈 행은 건너뛴다.
+    각 블록 앞에 "[시트: 이름]" 헤더를 붙여 검색·인용 시 어느 시트인지 드러나게 한다.
+    """
+    from openpyxl import load_workbook
+    wb = load_workbook(path, read_only=True, data_only=True)
+    blocks = []
+    try:
+        for ws in wb.worksheets:
+            lines = []
+            for row in ws.iter_rows(values_only=True):
+                cells = ["" if v is None else str(v) for v in row]
+                if any(c.strip() for c in cells):
+                    lines.append("\t".join(cells).rstrip())
+            text = "\n".join(lines).strip()
+            if text:
+                blocks.append({"page": None, "text": f"[시트: {ws.title}]\n{text}"})
+    finally:
+        wb.close()
+    if not blocks:
+        raise ValueError("XLSX 에서 텍스트를 추출하지 못했습니다.")
+    return blocks
 
 
 def _parse_hwpx(path: str) -> list[dict]:

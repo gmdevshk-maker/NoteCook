@@ -2,5 +2,7 @@
 pywebview==6.2.1     # 데스크톱 셸 (WebView2)
 requests             # Ollama REST API 호출 (상태/모델/임베딩/생성)
 pypdf                # PDF 파싱
-python-docx          # docx 파싱
+python-docx          # docx 파싱 + docx 내보내기
+python-pptx          # pptx 내보내기 (네이티브 차트 포함)
+openpyxl             # xlsx 내보내기 (네이티브 차트 포함)
 numpy                # RAG 코사인 유사도 벡터화 (별도 벡터DB 없이 검색 가속)
